@@ -5,7 +5,7 @@ Stripe is a popular payment gateway. This package provides strong support for us
 
 ## Video Tutorial
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/8GnASKq4-PI?si=sot7-saQuwyhkbjr" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+[![Bagisto Stripe Payment Gateway Tutorial](https://img.youtube.com/vi/8GnASKq4-PI/maxresdefault.jpg)](https://www.youtube.com/watch?v=8GnASKq4-PI)
 
 ## Installation
 1. **Get a License**: Visit [https://myapps.wontonee.com](https://myapps.wontonee.com) to obtain your Stripe payment gateway license. Trial licenses work for 7 days only.
