@@ -29,10 +29,9 @@ php artisan optimize
 ```
 
 
-
 ## Troubleshooting
 
 1. If you encounter an issue where you are not redirected to the payment gateway after placing an order and receive a route error, navigate to `bootstrap/cache` and delete all cache files.
 
 
-For any help or customization, visit <https://www.wontonee.com> or email us <dev@wontonee.com>
+For any help or customization, visit <https://www.wontonee.com> or email us <saju@wontonee.com>
