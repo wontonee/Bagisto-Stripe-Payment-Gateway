@@ -2,9 +2,8 @@
 Stripe is a popular payment gateway. This package provides strong support for users to integrate the Stripe payment gateway into their Bagisto Laravel e-commerce applications.
 
 ## Video Tutorial
-![DD1EA53C-FAA8-4884-A30C-977024113AB1_1_102_o](https://github.com/user-attachments/assets/9093866c-9574-43bb-95b4-02f96ba774b3)
 
-
+[![Bagisto Stripe Payment Gateway Tutorial](https://img.youtube.com/vi/8GnASKq4-PI/maxresdefault.jpg)](https://www.youtube.com/watch?v=8GnASKq4-PI)
 
 ## Installation
 1. **Get a License**: Visit [https://myapps.wontonee.com](https://myapps.wontonee.com) to obtain your Stripe payment gateway license. Trial licenses work for 7 days only.
