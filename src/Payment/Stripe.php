@@ -17,9 +17,7 @@ class Stripe extends Payment
     public function getRedirectUrl()
     {
         return route('stripe.process');
-    }
-
-    /**
+    }    /**
      * Get payment method image.
      *
      * @return array
@@ -28,6 +26,11 @@ class Stripe extends Payment
     {
         $url = $this->getConfigData('image');
 
-        return $url ? Storage::url($url) : '';
+        if ($url) {
+            return Storage::url($url);
+        }
+
+        // Fallback to default Stripe logo
+        return asset('vendor/wontonee/stripe/logo/stripe_logo.png');
     }
 }

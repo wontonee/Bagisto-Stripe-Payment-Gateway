@@ -4,12 +4,19 @@ Stripe is a popular payment gateway. This package provides strong support for us
 **<span style="color:red;">Support Bagisto v2.2. For Bagisto 2.1, you can downgrade the package to 2.0.1</span>**
 
 ## Installation
-1. Use the command prompt to install this package:
+1. **Get a License**: Visit [https://myapps.wontonee.com](https://myapps.wontonee.com) to obtain your Stripe payment gateway license. Trial licenses work for 7 days only.
+
+2. Use the command prompt to install this package:
 ```sh
 composer require wontonee/stripe
 ```
 
-2. Open `config/app.php` and register the Stripe provider.
+3. Publish the package assets:
+```sh
+php artisan vendor:publish --tag=stripe-assets
+```
+
+4. Open `config/app.php` and register the Stripe provider.
 ```sh
 'providers' => [
         // Stripe provider
@@ -17,9 +24,11 @@ composer require wontonee/stripe
 ]
 ```
 
-3. Navigate to the `admin panel -> Configure/Payment Methods`, where Stripe will be visible at the end of the payment method list.
+5. Navigate to the `admin panel -> Configure/Payment Methods`, where Stripe will be visible at the end of the payment method list.
 
-4. Now open `app\Http\Middleware\VerifyCsrfToken.php` and add this route to the exception list.
+6. **Configure License**: In the Stripe payment method settings, enter your license key obtained from step 1.
+
+7. Now open `app\Http\Middleware\VerifyCsrfToken.php` and add this route to the exception list.
 ```sh
 protected $except = [
     '/stripe-success',
@@ -27,7 +36,7 @@ protected $except = [
 ];
 ```
 
-5. Now run `php artisan config:cache`
+8. Now run `php artisan config:cache`
 
 
 

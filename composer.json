@@ -7,13 +7,21 @@
             "Wontonee\\Stripe\\": "src/"
         }
     },
-	"extra": {
+    "extra": {
         "laravel": {
             "providers": [
                 "Wontonee\\Stripe\\Providers\\StripeServiceProvider"
             ],
             "aliases": {}
         }
+    },
+    "scripts": {
+        "post-install-cmd": [
+            "@php artisan vendor:publish --tag=stripe-assets --force"
+        ],
+        "post-update-cmd": [
+            "@php artisan vendor:publish --tag=stripe-assets --force"
+        ]
     },
     "authors": [
         {
@@ -22,6 +30,6 @@
         }
     ],
     "require": {
-		 "stripe/stripe-php": "^14.3"
-	}
+        "stripe/stripe-php": "^14.3"
+    }
 }
