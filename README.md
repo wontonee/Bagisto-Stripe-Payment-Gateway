@@ -20,7 +20,11 @@ php artisan vendor:publish --tag=stripe-assets
 
 5. **Configure License**: In the Stripe payment method settings, enter your license key obtained from step 1.
 
-6. Now run `php artisan config:cache`
+6. Now run the following commands to optimize your application:
+```sh
+php artisan config:cache
+php artisan optimize
+```
 
 
 
