@@ -16,27 +16,11 @@ composer require wontonee/stripe
 php artisan vendor:publish --tag=stripe-assets
 ```
 
-4. Open `config/app.php` and register the Stripe provider.
-```sh
-'providers' => [
-        // Stripe provider
-        Wontonee\Stripe\Providers\StripeServiceProvider::class,
-]
-```
+4. Navigate to the `admin panel -> Configure/Payment Methods`, where Stripe will be visible at the end of the payment method list.
 
-5. Navigate to the `admin panel -> Configure/Payment Methods`, where Stripe will be visible at the end of the payment method list.
+5. **Configure License**: In the Stripe payment method settings, enter your license key obtained from step 1.
 
-6. **Configure License**: In the Stripe payment method settings, enter your license key obtained from step 1.
-
-7. Now open `app\Http\Middleware\VerifyCsrfToken.php` and add this route to the exception list.
-```sh
-protected $except = [
-    '/stripe-success',
-    '/stripe-cancel'
-];
-```
-
-8. Now run `php artisan config:cache`
+6. Now run `php artisan config:cache`
 
 
 
