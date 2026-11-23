@@ -356,12 +356,14 @@
                         this.errors.card = '';
                           try {
                             // Step 1: Create PaymentIntent on the server
-                            const response = await fetch('/stripe-create-payment-intent', {
+                            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                            const response = await fetch(@json(route('stripe.create.payment.intent')), {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
                                     'Accept': 'application/json',
-                                    'X-Requested-With': 'XMLHttpRequest'
+                                    'X-Requested-With': 'XMLHttpRequest',
+                                    'X-CSRF-TOKEN': csrfToken || ''
                                 }
                             });
                             
@@ -412,9 +414,9 @@
                             // Create a form and submit it to complete the order
                             const form = document.createElement('form');
                             form.method = 'POST';
-                            form.action = '/stripe-process-payment';
+                            form.action = @json(route('stripe.process.payment'));
                             
-                            // Add CSRF token (this route still needs CSRF)
+                            // Add CSRF token
                             const csrfInput = document.createElement('input');
                             csrfInput.type = 'hidden';
                             csrfInput.name = '_token';

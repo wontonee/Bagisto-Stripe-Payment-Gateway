@@ -18,8 +18,7 @@ Route::group(['middleware' => ['web', 'theme', 'locale', 'currency']], function 
         ->name('stripe.process.payment');
 });
 
-// Stripe Payment Intent creation with license validation
+// Stripe Payment Intent creation with license validation (CSRF required — Blade must send X-CSRF-TOKEN)
 Route::post('stripe-create-payment-intent', [StripeController::class, 'createPaymentIntent'])
     ->middleware(['web', 'locale', 'currency', \Wontonee\Stripe\Http\Middleware\ValidateStripeLicense::class . ':create_intent'])
-    ->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class)
     ->name('stripe.create.payment.intent');

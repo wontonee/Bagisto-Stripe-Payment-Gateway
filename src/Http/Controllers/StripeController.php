@@ -4,6 +4,7 @@ namespace Wontonee\Stripe\Http\Controllers;
 
 use Illuminate\Routing\Controller;
 use Webkul\Checkout\Facades\Cart;
+use Webkul\Sales\Models\OrderPayment;
 use Webkul\Sales\Repositories\OrderRepository;
 use Webkul\Sales\Transformers\OrderResource;
 use Webkul\Sales\Repositories\InvoiceRepository;
@@ -252,20 +253,27 @@ class StripeController extends Controller
 
       Stripe\Stripe::setApiKey($apiKey);
 
-      // Retrieve the PaymentIntent to verify it was successful
+      // Retrieve the PaymentIntent to verify it was successful and matches this cart
       $paymentIntent = Stripe\PaymentIntent::retrieve($request->input('payment_intent_id'));
 
-      if ($paymentIntent->status === 'succeeded') {
-        // Store payment details in session for order creation
-        session([
-          'stripe_payment_id' => $paymentIntent->id,
-          'stripe_customer_id' => $paymentIntent->customer,
-        ]);
-
-        return redirect()->route('stripe.success');
-      } else {
-        throw new \Exception('Payment failed: Payment not completed');
+      if (! $this->paymentIntentMatchesCart($paymentIntent, $cart)) {
+        return redirect()->back()
+          ->with('error', 'Payment verification failed: payment does not match this cart')
+          ->withInput();
       }
+
+      if ($this->paymentIntentAlreadyUsed($paymentIntent->id)) {
+        return redirect()->route('shop.checkout.cart.index')
+          ->with('error', 'This payment was already used for an order');
+      }
+
+      // Store payment details in session for order creation
+      session([
+        'stripe_payment_id' => $paymentIntent->id,
+        'stripe_customer_id' => $paymentIntent->customer,
+      ]);
+
+      return redirect()->route('stripe.success');
     } catch (Stripe\Exception\CardException $e) {
       return redirect()->back()
         ->with('error', 'Card error: ' . $e->getError()->message)
@@ -302,7 +310,6 @@ class StripeController extends Controller
    */
   public function success()
   {
-
     $cart = Cart::getCart();
 
     if (!$cart) {
@@ -310,17 +317,51 @@ class StripeController extends Controller
         ->with('error', 'Cart not found');
     }
 
+    $paymentIntentId = session('stripe_payment_id');
+
+    if (! $paymentIntentId) {
+      return redirect()->route('shop.checkout.cart.index')
+        ->with('error', 'Payment verification failed: missing payment reference');
+    }
+
+    $apiKey = core()->getConfigData('sales.payment_methods.stripe.stripe_api_key');
+
+    if (! $apiKey) {
+      return redirect()->route('shop.checkout.cart.index')
+        ->with('error', 'Stripe payment method is not configured');
+    }
+
     try {
+      Stripe\Stripe::setApiKey($apiKey);
+
+      $paymentIntent = Stripe\PaymentIntent::retrieve($paymentIntentId);
+
+      if (! $this->paymentIntentMatchesCart($paymentIntent, $cart)) {
+        return redirect()->route('shop.checkout.cart.index')
+          ->with('error', 'Payment verification failed: payment not confirmed for this cart');
+      }
+
+      if ($this->paymentIntentAlreadyUsed($paymentIntent->id)) {
+        session()->forget(['stripe_payment_id', 'stripe_customer_id']);
+
+        return redirect()->route('shop.checkout.cart.index')
+          ->with('error', 'This payment was already used for an order');
+      }
+
       $data = (new OrderResource($cart))->jsonSerialize();
       $order = $this->orderRepository->create($data);
 
       // Update order status
       $this->orderRepository->update(['status' => 'processing'], $order->id);
 
+      $this->storePaymentIntentOnOrder($order, $paymentIntent->id);
+
       // Create invoice if the order can be invoiced
       if ($order->canInvoice()) {
         $this->invoiceRepository->create($this->prepareInvoiceData($order));
       }
+
+      session()->forget(['stripe_payment_id', 'stripe_customer_id']);
 
       // Deactivate cart
       Cart::deActivateCart();
@@ -331,6 +372,106 @@ class StripeController extends Controller
       return redirect()->route('shop.checkout.cart.index')
         ->with('error', 'Order creation failed: ' . $e->getMessage());
     }
+  }
+
+  /**
+   * Buyer cancelled Stripe payment — return to cart without creating an order.
+   *
+   * @return \Illuminate\Http\RedirectResponse
+   */
+  public function cancel()
+  {
+    session()->forget(['stripe_payment_id', 'stripe_customer_id']);
+
+    return redirect()->route('shop.checkout.cart.index')
+      ->with('error', 'Stripe payment was cancelled.');
+  }
+
+  /**
+   * Cart total in smallest currency unit (cents), matching createPaymentIntent.
+   *
+   * @param  mixed  $cart
+   * @return int
+   */
+  protected function cartAmountInCents($cart)
+  {
+    $shipping_rate = $cart->selected_shipping_rate ? $cart->selected_shipping_rate->price : 0;
+    $discount_amount = $cart->discount_amount ?? 0;
+    $total_amount = ($cart->sub_total + $cart->tax_total + $shipping_rate) - $discount_amount;
+
+    return (int) ($total_amount * 100);
+  }
+
+  /**
+   * Verify PaymentIntent is succeeded and bound to this cart's amount/currency.
+   *
+   * @param  \Stripe\PaymentIntent  $paymentIntent
+   * @param  mixed  $cart
+   * @return bool
+   */
+  protected function paymentIntentMatchesCart($paymentIntent, $cart)
+  {
+    if ($paymentIntent->status !== 'succeeded') {
+      return false;
+    }
+
+    $metadataCartId = $paymentIntent->metadata['cart_id'] ?? null;
+
+    if ((string) $metadataCartId !== (string) $cart->id) {
+      return false;
+    }
+
+    if ((int) $paymentIntent->amount !== $this->cartAmountInCents($cart)) {
+      return false;
+    }
+
+    $expectedCurrency = strtolower($cart->global_currency_code ?? 'usd');
+
+    if (strtolower((string) $paymentIntent->currency) !== $expectedCurrency) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Whether this PaymentIntent id was already stored on an order payment.
+   *
+   * @param  string  $paymentIntentId
+   * @return bool
+   */
+  protected function paymentIntentAlreadyUsed($paymentIntentId)
+  {
+    return OrderPayment::query()
+      ->where('method', 'stripe')
+      ->where('additional->payment_intent_id', $paymentIntentId)
+      ->exists();
+  }
+
+  /**
+   * Persist Stripe PaymentIntent id on order_payment.additional (Bagisto pattern).
+   *
+   * @param  \Webkul\Sales\Contracts\Order  $order
+   * @param  string  $paymentIntentId
+   * @return void
+   */
+  protected function storePaymentIntentOnOrder($order, $paymentIntentId)
+  {
+    $payment = $order->payment;
+
+    if (! $payment) {
+      return;
+    }
+
+    $additional = $payment->additional ?? [];
+
+    if (! is_array($additional)) {
+      $additional = [];
+    }
+
+    $additional['payment_intent_id'] = $paymentIntentId;
+
+    $payment->update(['additional' => $additional]);
   }
 
   /**
